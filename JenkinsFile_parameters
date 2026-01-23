@@ -29,7 +29,7 @@ pipeline {
             }
         }
 
-        stage('deploymedt') {
+        stage('deployment') {
             echo "Deploying to: ${params.ENVIRONMENT}"
         }
 
