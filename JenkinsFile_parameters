@@ -1,39 +1,41 @@
 pipeline {
     agent any
     parameters {
-        choice(name: 'ENVIRONMENT', choices: ['dev', 'staging', 'prod'], description: 'Select browser for testing')
-        booleanParam(name: 'RUN_TESTS ', defaultValue: true, description: 'runs the tests when its needed')
+        choice(name: 'ENVIRONMENT', choices: ['dev', 'staging', 'prod'], description: 'Select environment for deployment')
+        booleanParam(name: 'RUN_TESTS', defaultValue: true, description: 'runs the tests when its needed')
         text(name: 'RELEASE_NOTES', defaultValue: 'Version 1.0', description: 'Enter release notes (multi-line)')
     }
     stages {
 
         stage('validation') {
             steps {
-            echo "validating the deploy of environment: ${params.ENVIRONMENT}"
-            when {
-                expression { params.ENVIRONMENT  == "prod" }
+                echo "validating the deploy of environment: ${params.ENVIRONMENT}"
+                script {
+                    if (params.ENVIRONMENT == "prod") {
+                        echo 'take care thats the prod env :)'
+                    }
+                }
             }
-            steps {
-                echo 'take care thats the prod env :)' 
-            }   
-        }
         }
 
         stage('test') {
-            script {
-            if (params.RUN_TESTS  == true ) {
-                sh 'echo "Runing Tests..."'
-            } else {
-                sh 'echo "tests skiped.."'
-            }
+            steps {
+                script {
+                    if (params.RUN_TESTS == true) {
+                        sh 'echo "Running Tests..."'
+                    } else {
+                        sh 'echo "tests skipped.."'
+                    }
+                }
             }
         }
 
         stage('deployment') {
-            echo "Deploying to: ${params.ENVIRONMENT}"
+            steps {
+                echo "Deploying to: ${params.ENVIRONMENT}"
+                echo "Release Notes: ${params.RELEASE_NOTES}"
+            }
         }
 
     }
-
-
-    }
+}
