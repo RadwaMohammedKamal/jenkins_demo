@@ -2,7 +2,7 @@ pipeline {
   agent {
     docker {
       image 'abhishekf5/maven-abhishek-docker-agent:v1'
-      args '--user root -v /var/run/docker.sock:/var/run/docker.sock' 
+      args '--user root -v /var/run/docker.sock:/var/run/docker.sock --network host' 
     }
   }
   stages {
@@ -15,6 +15,8 @@ pipeline {
     stage('Build and Test') {
       steps {
         sh 'ls -ltr'
+        sh 'pwd'
+        sh 'find . -name "*.java" -type f'
         sh 'mvn clean package'
       }
     }
@@ -24,7 +26,7 @@ pipeline {
       }
       steps {
         withCredentials([string(credentialsId: 'sonarqube', variable: 'SONAR_AUTH_TOKEN')]) {
-          sh 'cd java-maven-sonar-argocd-helm-k8s/spring-boot-app && mvn sonar:sonar -Dsonar.login=$SONAR_AUTH_TOKEN -Dsonar.host.url=${SONAR_URL}'
+          sh 'mvn sonar:sonar -Dsonar.login=$SONAR_AUTH_TOKEN -Dsonar.host.url=${SONAR_URL}'
         }
       }
     }
@@ -54,8 +56,8 @@ pipeline {
                     git config user.email "abdelrahman.hamouda29@gmail.com"
                     git config user.name "3bdo7amouda"
                     BUILD_NUMBER=${BUILD_NUMBER}
-                    sed -i "s/replaceImageTag/${BUILD_NUMBER}/g" java-maven-sonar-argocd-helm-k8s/spring-boot-app-manifests/deployment.yml
-                    git add java-maven-sonar-argocd-helm-k8s/spring-boot-app-manifests/deployment.yml
+                    sed -i "s/replaceImageTag/${BUILD_NUMBER}/g" kubernetes/deployment.yml
+                    git add kubernetes/deployment.yml
                     git commit -m "Update deployment image to version ${BUILD_NUMBER}"
                     git push https://${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME} HEAD:main
                 '''
