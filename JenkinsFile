@@ -5,31 +5,31 @@ pipeline {
       args '--user root -v /var/run/docker.sock:/var/run/docker.sock --network host' 
     }
   }
-  // stages {
-  //   stage('Checkout') {
-  //     steps {
-  //       sh 'echo passed'
-  //       git branch: 'main', url: 'https://github.com/3bdo7amouda/jenkins_demo'
-  //     }
-  //   }
-  //   stage('Build and Test') {
-  //     steps {
-  //       sh 'ls -ltr'
-  //       sh 'pwd'
-  //       sh 'find . -name "*.java" -type f'
-  //       sh 'mvn clean package'
-  //     }
-  //   }
-  //   stage('Static Code Analysis') {
-  //     environment {
-  //       SONAR_URL = "http://192.168.72.200:9000"
-  //     }
-  //     steps {
-  //       withCredentials([string(credentialsId: 'sonarqube', variable: 'SONAR_AUTH_TOKEN')]) {
-  //         sh 'mvn sonar:sonar -Dsonar.login=$SONAR_AUTH_TOKEN -Dsonar.host.url=${SONAR_URL}'
-  //       }
-  //     }
-  //   }
+  stages {
+    stage('Checkout') {
+      steps {
+        sh 'echo passed'
+        git branch: 'main', url: 'https://github.com/3bdo7amouda/jenkins_demo'
+      }
+    }
+    stage('Build and Test') {
+      steps {
+        sh 'ls -ltr'
+        sh 'pwd'
+        sh 'find . -name "*.java" -type f'
+        sh 'mvn clean package'
+      }
+    }
+    stage('Static Code Analysis') {
+      environment {
+        SONAR_URL = "http://192.168.72.200:9000"
+      }
+      steps {
+        withCredentials([string(credentialsId: 'sonarqube', variable: 'SONAR_AUTH_TOKEN')]) {
+          sh 'mvn sonar:sonar -Dsonar.login=$SONAR_AUTH_TOKEN -Dsonar.host.url=${SONAR_URL}'
+        }
+      }
+    }
     stage('Build and Push Docker Image') {
       environment {
         DOCKER_IMAGE = "3bdo7amouda/jenkins_demo:${BUILD_NUMBER}"
@@ -70,4 +70,4 @@ pipeline {
         }
     }
   }
-// }
+}
