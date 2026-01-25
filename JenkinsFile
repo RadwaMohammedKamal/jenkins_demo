@@ -17,6 +17,7 @@ pipeline {
         sh 'ls -ltr'
         sh 'pwd'
         sh 'java -version'
+        // build the project and create a JAR file
         sh 'mvn clean package'
       }
     }
@@ -57,16 +58,7 @@ pipeline {
         }
         steps {
             withCredentials([string(credentialsId: 'github', variable: 'GITHUB_TOKEN')]) {
-                sh '''
-                    # Install git if not available
-                    apt-get update && apt-get install -y git || true
-                    
-                    # Re-initialize git in current directory
-                    git init
-                    git remote add origin https://github.com/${GIT_USER_NAME}/${GIT_REPO_NAME}.git || git remote set-url origin https://github.com/${GIT_USER_NAME}/${GIT_REPO_NAME}.git
-                    git fetch origin main
-                    git checkout main
-                    
+                sh '''  
                     # Configure git
                     git config user.email "abdelrahman.hamouda29@gmail.com"
                     git config user.name "3bdo7amouda"
