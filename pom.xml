@@ -14,16 +14,14 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>2.7.18</version>  <!-- Updated to support Java 17 -->
+        <version>2.2.4.RELEASE</version>
     </parent>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <maven.compiler.source>17</maven.compiler.source>  <!-- Changed from 11 to 17 -->
-        <maven.compiler.target>17</maven.compiler.target>  <!-- Changed from 11 to 17 -->
-        <java.version>17</java.version>  <!-- Changed from 11 to 17 -->
-        <sonar.organization>your-org</sonar.organization>
-        <sonar.host.url>http://192.168.72.200:9000</sonar.host.url>
+        <maven.compiler.source>11</maven.compiler.source>
+        <maven.compiler.target>11</maven.compiler.target>
+        <java.version>11</java.version>
     </properties>
 
     <dependencies>
@@ -59,23 +57,15 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
-                <configuration>
-                    <mainClass>com.abhishek.StartApplication</mainClass>
-                </configuration>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.11.0</version>  <!-- Updated version -->
+                <version>3.8.0</version>
                 <configuration>
                     <source>${java.version}</source>
                     <target>${java.version}</target>
                 </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.sonarsource.scanner.maven</groupId>
-                <artifactId>sonar-maven-plugin</artifactId>
-                <version>3.11.0.3922</version>  <!-- Updated to latest compatible version -->
             </plugin>
 
         </plugins>
