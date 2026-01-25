@@ -16,12 +16,8 @@ pipeline {
     }
     stage('Checkout') {
       steps {
-        sh 'echo Checking out code...'
-        checkout([
-          $class: 'GitSCM',
-          branches: [[name: '*/main']],
-          userRemoteConfigs: [[url: 'https://github.com/3bdo7amouda/jenkins_demo']]
-        ])
+        sh 'echo passed'
+        git branch: 'main', url: 'https://github.com/3bdo7amouda/jenkins_demo'
       }
     }
     stage('Build and Test') {
@@ -29,6 +25,7 @@ pipeline {
         sh 'ls -ltr'
         sh 'pwd'
         sh 'java -version'
+        // build the project and create a JAR file
         sh 'mvn clean package'
       }
     }
