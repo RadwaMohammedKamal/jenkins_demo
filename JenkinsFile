@@ -58,13 +58,15 @@ pipeline {
         }
         steps {
             withCredentials([string(credentialsId: 'github', variable: 'GITHUB_TOKEN')]) {
-                sh '''  
+                sh '''
+                    # Fix git safe directory issue
+                    git config --global --add safe.directory ${WORKSPACE}
+                    
                     # Configure git
                     git config user.email "abdelrahman.hamouda29@gmail.com"
                     git config user.name "3bdo7amouda"
                     
                     # Update deployment file
-                    BUILD_NUMBER=${BUILD_NUMBER}
                     sed -i "s/replaceImageTag/${BUILD_NUMBER}/g" kubernetes/deployment.yml
                     
                     # Commit and push
