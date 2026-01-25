@@ -8,6 +8,7 @@ pipeline {
   stages {
     stage('Checkout') {
       steps {
+        cleanWs()
         sh 'echo passed'
         git branch: 'main', url: 'https://github.com/3bdo7amouda/jenkins_demo'
       }
