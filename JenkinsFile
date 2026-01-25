@@ -18,7 +18,6 @@ pipeline {
         sh 'ls -ltr'
         sh 'pwd'
         sh 'java -version'
-        // build the project and create a JAR file
         sh 'mvn clean package'
       }
     }
