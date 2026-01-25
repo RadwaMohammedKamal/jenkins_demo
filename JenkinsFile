@@ -17,7 +17,6 @@ pipeline {
         sh 'ls -ltr'
         sh 'pwd'
         sh 'java -version'
-        // build the project and create a JAR file
         sh 'mvn clean package'
       }
     }
@@ -37,7 +36,6 @@ pipeline {
       }
       steps {
         script {
-            sh 'docker --version'  // Verify Docker is available
             withCredentials([usernamePassword(credentialsId: 'docker-cred', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
                 sh '''
                     echo "Building Docker image..."
@@ -60,10 +58,24 @@ pipeline {
         steps {
             withCredentials([string(credentialsId: 'github', variable: 'GITHUB_TOKEN')]) {
                 sh '''
+                    # Install git if not available
+                    apt-get update && apt-get install -y git || true
+                    
+                    # Re-initialize git in current directory
+                    git init
+                    git remote add origin https://github.com/${GIT_USER_NAME}/${GIT_REPO_NAME}.git || git remote set-url origin https://github.com/${GIT_USER_NAME}/${GIT_REPO_NAME}.git
+                    git fetch origin main
+                    git checkout main
+                    
+                    # Configure git
                     git config user.email "abdelrahman.hamouda29@gmail.com"
                     git config user.name "3bdo7amouda"
+                    
+                    # Update deployment file
                     BUILD_NUMBER=${BUILD_NUMBER}
                     sed -i "s/replaceImageTag/${BUILD_NUMBER}/g" kubernetes/deployment.yml
+                    
+                    # Commit and push
                     git add kubernetes/deployment.yml
                     git commit -m "Update deployment image to version ${BUILD_NUMBER}"
                     git push https://${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME} HEAD:main
