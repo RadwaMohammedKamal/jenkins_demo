@@ -5,15 +5,7 @@ pipeline {
       args '--user root -v /var/run/docker.sock:/var/run/docker.sock --network host -v /root/.m2:/root/.m2' 
     }
   }
-  options {
-    skipDefaultCheckout(true)
-  }
   stages {
-    stage('Clean Workspace') {
-      steps {
-        cleanWs()
-      }
-    }
     stage('Checkout') {
       steps {
         sh 'echo passed'
