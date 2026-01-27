@@ -16,7 +16,13 @@ pipeline {
 
     stage('Build and Test') {
       steps {
-        sh 'mvn clean package'
+        sh '''
+          mvn -Dmaven.wagon.http.retryHandler.count=5 \
+              -Dmaven.wagon.httpconnectionManager.ttlSeconds=600 \
+              -Dmaven.wagon.httpconnectionManager.maxPerRoute=20 \
+              -Dmaven.wagon.httpconnectionManager.maxTotal=50 \
+              clean package
+        '''
       }
     }
 
@@ -68,7 +74,7 @@ pipeline {
             git config user.email "radwamohamed202116768@gmail.com"
             git config user.name "radwa"
             sed -i "s/replaceImageTag/${BUILD_NUMBER}/g" kubernetes/deployment.yml
-            git add .
+            git add kubernetes/deployment.yml
             git commit -m "Update deployment image to version ${BUILD_NUMBER}"
             git push https://${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME} HEAD:main
           '''
