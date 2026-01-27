@@ -2,7 +2,7 @@ pipeline {
   agent {
     docker {
       image 'abhishekf5/maven-abhishek-docker-agent:v1'
-      args '--user root -v /var/run/docker.sock:/var/run/docker.sock -v /var/lib/jenkins/workspace:/var/lib/jenkins/workspace'
+      args '--user root --network host -v /var/run/docker.sock:/var/run/docker.sock -v /var/lib/jenkins/workspace:/var/lib/jenkins/workspace'
     }
   }
   stages {
@@ -37,45 +37,46 @@ pipeline {
       }
       steps {
         script {
-            withCredentials([usernamePassword(credentialsId: 'doker-hub', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-                sh '''
-                    echo "Building Docker image..."
-                    docker build -t ${DOCKER_IMAGE} .
-                    echo "Logging into Docker Hub..."
-                    echo ${DOCKER_PASS} | docker login -u ${DOCKER_USER} --password-stdin
-                    echo "Pushing Docker image..."
-                    docker push ${DOCKER_IMAGE}
-                    docker logout
-                '''
-            }
+          withCredentials([usernamePassword(credentialsId: 'doker-hub', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+            sh '''
+              echo "Building Docker image..."
+              docker build -t ${DOCKER_IMAGE} .
+              echo "Logging into Docker Hub..."
+              echo ${DOCKER_PASS} | docker login -u ${DOCKER_USER} --password-stdin
+              echo "Pushing Docker image..."
+              docker push ${DOCKER_IMAGE}
+              docker logout
+            '''
+          }
         }
       }
     }
     stage('Update Deployment File') {
-        environment {
-            GIT_REPO_NAME = "jenkins_demo"
-            GIT_USER_NAME = "RadwaMohammedKamal"
+      environment {
+        GIT_REPO_NAME = "jenkins_demo"
+        GIT_USER_NAME = "RadwaMohammedKamal"
+      }
+      steps {
+        withCredentials([string(credentialsId: 'gethub', variable: 'GITHUB_TOKEN')]) {
+          sh '''
+            # Fix git safe directory issue
+            git config --global --add safe.directory ${WORKSPACE}
+            
+            # Configure git
+            git config user.email "abdelrahman.hamouda29@gmail.com"
+            git config user.name "3bdo7amouda"
+            
+            # Update deployment file
+            sed -i "s/replaceImageTag/${BUILD_NUMBER}/g" kubernetes/deployment.yml
+            
+            # Commit and push
+            git add .
+            git commit -m "Update deployment image to version ${BUILD_NUMBER}"
+            git push https://${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME} HEAD:main
+          '''
         }
-        steps {
-            withCredentials([string(credentialsId: 'gethub', variable: 'GITHUB_TOKEN')]) {
-                sh '''
-                    # Fix git safe directory issue
-                    git config --global --add safe.directory ${WORKSPACE}
-                    
-                    # Configure git
-                    git config user.email "abdelrahman.hamouda29@gmail.com"
-                    git config user.name "3bdo7amouda"
-                    
-                    # Update deployment file
-                    sed -i "s/replaceImageTag/${BUILD_NUMBER}/g" kubernetes/deployment.yml
-                    
-                    # Commit and push
-                    git add .
-                    git commit -m "Update deployment image to version ${BUILD_NUMBER}"
-                    git push https://${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME} HEAD:main
-                '''
-            }
-        }
+      }
     }
   }
 }
+
