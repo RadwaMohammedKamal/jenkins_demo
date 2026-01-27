@@ -1,4 +1,12 @@
-target/
 .idea/
 *.iml
 .DS_Store
+.git
+.gitignore
+target/*
+node_modules
+Dockerfile
+Jenkinsfile
+README.md
+*.log
+

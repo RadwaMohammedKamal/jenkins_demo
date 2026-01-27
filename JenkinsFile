@@ -2,8 +2,12 @@ pipeline {
   agent {
     docker {
       image 'maven:3.9.2-eclipse-temurin-17'
-      args '--user root -v /var/run/docker.sock:/var/run/docker.sock -v /var/lib/jenkins/workspace:/var/lib/jenkins/workspace'
+      args '-u root -v /var/run/docker.sock:/var/run/docker.sock'
     }
+  }
+
+  options {
+    timestamps()
   }
 
   stages {
@@ -11,7 +15,8 @@ pipeline {
     stage('Checkout') {
       steps {
         cleanWs()
-        git branch: 'main', url: 'https://github.com/RadwaMohammedKamal/jenkins_demo'
+        git branch: 'main',
+            url: 'https://github.com/RadwaMohammedKamal/jenkins_demo'
       }
     }
 
@@ -38,8 +43,8 @@ pipeline {
         ]) {
           sh '''
             docker build -t ${DOCKER_IMAGE} .
-            echo ${DOCKER_PASS} | docker login -u ${DOCKER_USER} --password-stdin
-            docker push ${DOCKER_IMAGE} --quiet
+            echo "${DOCKER_PASS}" | docker login -u "${DOCKER_USER}" --password-stdin
+            docker push ${DOCKER_IMAGE}
             docker logout
           '''
         }
@@ -56,15 +61,15 @@ pipeline {
           string(credentialsId: 'gethub', variable: 'GITHUB_TOKEN')
         ]) {
           sh '''
-            git config --global --add safe.directory ${WORKSPACE}
+            git config --global --add safe.directory "$WORKSPACE"
             git config user.email "radwamohamed202116768@gmail.com"
             git config user.name "radwa"
 
             sed -i "s/replaceImageTag/${BUILD_NUMBER}/g" kubernetes/deployment.yml
 
-            git add .
-            git commit -m "Update deployment image to ${BUILD_NUMBER}" || echo "No changes"
-            git push https://${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME} HEAD:main
+            git add kubernetes/deployment.yml
+            git commit -m "Update deployment image to ${BUILD_NUMBER}" || echo "No changes to commit"
+            git push https://${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME}.git HEAD:main
           '''
         }
       }
