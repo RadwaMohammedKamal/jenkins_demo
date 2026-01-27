@@ -2,17 +2,18 @@ pipeline {
   agent {
     docker {
       image 'abhishekf5/maven-abhishek-docker-agent:v1'
-      args '--user root --network host -v /var/run/docker.sock:/var/run/docker.sock -v /var/lib/jenkins/workspace:/var/lib/jenkins/workspace'
+      args '--user root -v /var/run/docker.sock:/var/run/docker.sock'
     }
   }
+
   stages {
     stage('Checkout') {
       steps {
         cleanWs()
-        sh 'echo passed'
         git branch: 'main', url: 'https://github.com/RadwaMohammedKamal/jenkins_demo'
       }
     }
+
     stage('Build and Test') {
       steps {
         sh 'ls -ltr'
@@ -21,16 +22,25 @@ pipeline {
         sh 'mvn clean package'
       }
     }
+
     stage('Static Code Analysis') {
       environment {
         SONAR_URL = "http://192.168.49.4:9000"
       }
       steps {
         withCredentials([string(credentialsId: 'sonarqube', variable: 'SONAR_AUTH_TOKEN')]) {
-          sh 'mvn sonar:sonar -Dsonar.login=$SONAR_AUTH_TOKEN -Dsonar.host.url=${SONAR_URL} -Dsonar.ws.timeout=120'
+          sh '''
+            mvn sonar:sonar \
+              -Dsonar.login=$SONAR_AUTH_TOKEN \
+              -Dsonar.host.url=${SONAR_URL} \
+              -Dsonar.ws.timeout=300 \
+              -Dsonar.projectKey=jenkins_demo \
+              -Dsonar.projectName=jenkins_demo
+          '''
         }
       }
     }
+
     stage('Build and Push Docker Image') {
       environment {
         DOCKER_IMAGE = "radwa1/jenkins_demo:${BUILD_NUMBER}"
@@ -39,11 +49,8 @@ pipeline {
         script {
           withCredentials([usernamePassword(credentialsId: 'doker-hub', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
             sh '''
-              echo "Building Docker image..."
               docker build -t ${DOCKER_IMAGE} .
-              echo "Logging into Docker Hub..."
               echo ${DOCKER_PASS} | docker login -u ${DOCKER_USER} --password-stdin
-              echo "Pushing Docker image..."
               docker push ${DOCKER_IMAGE}
               docker logout
             '''
@@ -51,6 +58,7 @@ pipeline {
         }
       }
     }
+
     stage('Update Deployment File') {
       environment {
         GIT_REPO_NAME = "jenkins_demo"
@@ -59,17 +67,10 @@ pipeline {
       steps {
         withCredentials([string(credentialsId: 'gethub', variable: 'GITHUB_TOKEN')]) {
           sh '''
-            # Fix git safe directory issue
             git config --global --add safe.directory ${WORKSPACE}
-            
-            # Configure git
             git config user.email "radwamohamed202116768@gmail.com"
             git config user.name "radwa"
-            
-            # Update deployment file
             sed -i "s/replaceImageTag/${BUILD_NUMBER}/g" kubernetes/deployment.yml
-            
-            # Commit and push
             git add .
             git commit -m "Update deployment image to version ${BUILD_NUMBER}"
             git push https://${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME} HEAD:main
