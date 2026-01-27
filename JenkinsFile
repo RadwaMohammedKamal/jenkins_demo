@@ -10,7 +10,7 @@ pipeline {
       steps {
         cleanWs()
         sh 'echo passed'
-        git branch: 'main', url: 'https://github.com/3bdo7amouda/jenkins_demo'
+        git branch: 'main', url: 'https://github.com/RadwaMohammedKamal/jenkins_demo'
       }
     }
     stage('Build and Test') {
@@ -23,7 +23,7 @@ pipeline {
     }
     stage('Static Code Analysis') {
       environment {
-        SONAR_URL = "http://192.168.72.200:9000"
+        SONAR_URL = "http://192.168.31.131:9000"
       }
       steps {
         withCredentials([string(credentialsId: 'sonarqube', variable: 'SONAR_AUTH_TOKEN')]) {
@@ -33,11 +33,11 @@ pipeline {
     }
     stage('Build and Push Docker Image') {
       environment {
-        DOCKER_IMAGE = "3bdo7amouda/jenkins_demo:${BUILD_NUMBER}"
+        DOCKER_IMAGE = "radwa1/jenkins_demo:${BUILD_NUMBER}"
       }
       steps {
         script {
-            withCredentials([usernamePassword(credentialsId: 'docker-cred', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+            withCredentials([usernamePassword(credentialsId: 'doker-hub', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
                 sh '''
                     echo "Building Docker image..."
                     docker build -t ${DOCKER_IMAGE} .
@@ -54,10 +54,10 @@ pipeline {
     stage('Update Deployment File') {
         environment {
             GIT_REPO_NAME = "jenkins_demo"
-            GIT_USER_NAME = "3bdo7amouda"
+            GIT_USER_NAME = "RadwaMohammedKamal"
         }
         steps {
-            withCredentials([string(credentialsId: 'github', variable: 'GITHUB_TOKEN')]) {
+            withCredentials([string(credentialsId: 'gethub', variable: 'GITHUB_TOKEN')]) {
                 sh '''
                     # Fix git safe directory issue
                     git config --global --add safe.directory ${WORKSPACE}
