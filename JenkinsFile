@@ -27,7 +27,7 @@ pipeline {
       }
       steps {
         withCredentials([string(credentialsId: 'sonarqube', variable: 'SONAR_AUTH_TOKEN')]) {
-          sh 'mvn sonar:sonar -Dsonar.login=$SONAR_AUTH_TOKEN -Dsonar.host.url=${SONAR_URL}'
+          sh 'mvn sonar:sonar -Dsonar.login=$SONAR_AUTH_TOKEN -Dsonar.host.url=${SONAR_URL} -Dsonar.ws.timeout=120'
         }
       }
     }
@@ -63,8 +63,8 @@ pipeline {
             git config --global --add safe.directory ${WORKSPACE}
             
             # Configure git
-            git config user.email "abdelrahman.hamouda29@gmail.com"
-            git config user.name "3bdo7amouda"
+            git config user.email "radwamohamed202116768@gmail.com"
+            git config user.name "radwa"
             
             # Update deployment file
             sed -i "s/replaceImageTag/${BUILD_NUMBER}/g" kubernetes/deployment.yml
