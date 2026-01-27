@@ -1,92 +1,85 @@
 pipeline {
-  agent {
-    docker {
-      image 'abhishekf5/maven-abhishek-docker-agent:v1'
-      // أضفنا الـ IP الثابت ل SonarQube داخل /etc/hosts
-      args '--user root --add-host=sonarqube:192.168.49.4 -v /var/run/docker.sock:/var/run/docker.sock'
-    }
-  }
-
-  stages {
-    stage('Checkout') {
-      steps {
-        cleanWs()
-        git branch: 'main', url: 'https://github.com/RadwaMohammedKamal/jenkins_demo'
-      }
-    }
-
-    stage('Build and Test') {
-      steps {
-        sh 'mvn clean package'
-      }
-    }
-
-    stage('Check Sonar Connectivity') {
-      steps {
-        sh '''
-          echo "Checking connectivity to SonarQube..."
-          curl -I http://sonarqube:9000 || true
-        '''
-      }
-    }
-
-    stage('Static Code Analysis') {
-      environment {
-        // استخدمنا الاسم اللي في /etc/hosts
-        SONAR_URL = "http://sonarqube:9000"
-      }
-      steps {
-        withCredentials([string(credentialsId: 'sonarqube', variable: 'SONAR_AUTH_TOKEN')]) {
-          sh '''
-            echo "Running SonarQube analysis..."
-            mvn sonar:sonar \
-              -Dsonar.login=$SONAR_AUTH_TOKEN \
-              -Dsonar.host.url=${SONAR_URL} \
-              -Dsonar.ws.timeout=300 \
-              -Dsonar.projectKey=jenkins_demo \
-              -Dsonar.projectName=jenkins_demo
-          '''
+    agent {
+        docker {
+            image 'maven:3.9.2-eclipse-temurin-17'
+            args '--user root -v /var/run/docker.sock:/var/run/docker.sock -v /var/lib/jenkins/workspace:/var/lib/jenkins/workspace'
         }
-      }
     }
 
-    stage('Build and Push Docker Image') {
-      environment {
-        DOCKER_IMAGE = "radwa1/jenkins_demo:${BUILD_NUMBER}"
-      }
-      steps {
-        script {
-          withCredentials([usernamePassword(credentialsId: 'doker-hub', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-            sh '''
-              docker build -t ${DOCKER_IMAGE} .
-              echo ${DOCKER_PASS} | docker login -u ${DOCKER_USER} --password-stdin
-              docker push ${DOCKER_IMAGE}
-              docker logout
-            '''
-          }
-        }
-      }
-    }
+    stages {
 
-    stage('Update Deployment File') {
-      environment {
-        GIT_REPO_NAME = "jenkins_demo"
-        GIT_USER_NAME = "RadwaMohammedKamal"
-      }
-      steps {
-        withCredentials([string(credentialsId: 'gethub', variable: 'GITHUB_TOKEN')]) {
-          sh '''
-            git config --global --add safe.directory ${WORKSPACE}
-            git config user.email "radwamohamed202116768@gmail.com"
-            git config user.name "radwa"
-            sed -i "s/replaceImageTag/${BUILD_NUMBER}/g" kubernetes/deployment.yml
-            git add .
-            git commit -m "Update deployment image to version ${BUILD_NUMBER}"
-            git push https://${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME} HEAD:main
-          '''
+        stage('Checkout') {
+            steps {
+                cleanWs()
+                withCredentials([string(credentialsId: 'gethub', variable: 'GIT_TOKEN')]) {
+                    sh 'git clone https://${GIT_TOKEN}@github.com/RadwaMohammedKamal/jenkins_demo.git .'
+                }
+            }
         }
-      }
+
+        stage('Build and Test') {
+            steps {
+                sh 'java -version'
+                sh 'mvn clean package'
+            }
+        }
+
+        stage('Static Code Analysis') {
+            environment {
+                SONAR_URL = "http://192.168.49.4:9000"
+            }
+            steps {
+                withCredentials([string(credentialsId: 'sonarqube', variable: 'SONAR_AUTH_TOKEN')]) {
+                    sh '''
+                      mvn sonar:sonar \
+                      -Dsonar.login=$SONAR_AUTH_TOKEN \
+                      -Dsonar.host.url=${SONAR_URL}
+                    '''
+                }
+            }
+        }
+
+        stage('Build and Push Docker Image') {
+            environment {
+                DOCKER_IMAGE = "radwa1/jenkins_demo:${BUILD_NUMBER}"
+            }
+            steps {
+                withCredentials([usernamePassword(
+                    credentialsId: 'doker-hub',
+                    usernameVariable: 'DOCKER_USER',
+                    passwordVariable: 'DOCKER_PASS'
+                )]) {
+                    sh '''
+                      docker build -t ${DOCKER_IMAGE} .
+                      echo ${DOCKER_PASS} | docker login -u ${DOCKER_USER} --password-stdin
+                      docker push ${DOCKER_IMAGE}
+                      docker logout
+                    '''
+                }
+            }
+        }
+
+        stage('Update Deployment File') {
+            environment {
+                GIT_REPO_NAME = "jenkins_demo"
+                GIT_USER_NAME = "RadwaMohammedKamal"
+            }
+            steps {
+                withCredentials([string(credentialsId: 'gethub', variable: 'GITHUB_TOKEN')]) {
+                    sh '''
+                      git config --global --add safe.directory ${WORKSPACE}
+                      git config user.email "radwamohamed202116768@gmail.com"
+                      git config user.name "radwa"
+
+                      sed -i "s/replaceImageTag/${BUILD_NUMBER}/g" kubernetes/deployment.yml
+
+                      git add .
+                      git commit -m "Update deployment image to ${BUILD_NUMBER}" || echo "No changes"
+                      git push https://${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME} HEAD:main
+                    '''
+                }
+            }
+        }
     }
-  }
 }
 
