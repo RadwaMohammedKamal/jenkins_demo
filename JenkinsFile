@@ -1,44 +1,86 @@
 pipeline {
-    agent any
+  agent {
+    docker {
+      image 'maven:3.9.2-eclipse-temurin-17' // Maven + JDK
+      args '-u root -v /var/run/docker.sock:/var/run/docker.sock'
+    }
+  }
 
-    environment {
-        // هات بيانات تسجيل الدخول لـ Docker Hub
-        DOCKER_USER = credentials('docker-username') // الاسم
-        DOCKER_PASS = credentials('docker-password') // الباسورد
-        IMAGE_NAME = "radwa1/jenkins_demo:latest"
+  options {
+    timestamps()
+  }
+
+  stages {
+
+    stage('Checkout') {
+      steps {
+        cleanWs()
+        git branch: 'main',
+            url: 'https://github.com/RadwaMohammedKamal/jenkins_demo'
+      }
     }
 
-    stages {
-        stage('Build Maven Project') {
-            steps {
-                echo 'Building Maven project...'
-                sh 'mvn clean package -DskipTests'
-            }
-        }
-
-        stage('Build Docker Image') {
-            steps {
-                echo 'Building Docker image...'
-                sh "docker build -t ${IMAGE_NAME} ."
-            }
-        }
-
-        stage('Push Docker Image') {
-            steps {
-                echo 'Pushing Docker image to Docker Hub...'
-                sh "echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin"
-                sh "docker push ${IMAGE_NAME}"
-            }
-        }
+    stage('Build and Test') {
+      steps {
+        sh '''
+          java -version
+          mvn clean package -DskipTests
+        '''
+      }
     }
 
-    post {
-        success {
-            echo 'Pipeline finished successfully!'
+    stage('Build Docker Image & Push') {
+      environment {
+        DOCKER_IMAGE = "radwa1/jenkins_demo:${BUILD_NUMBER}"
+      }
+      steps {
+        withCredentials([
+          usernamePassword(
+            credentialsId: 'doker-hub',
+            usernameVariable: 'DOCKER_USER',
+            passwordVariable: 'DOCKER_PASS'
+          )
+        ]) {
+          sh '''
+            # Create .dockerignore
+            echo "target/" > .dockerignore
+            echo ".git" >> .dockerignore
+
+            # Use existing Dockerfile instead of echoing
+            docker build -t ${DOCKER_IMAGE} .
+
+            # Login and push
+            echo "${DOCKER_PASS}" | docker login -u "${DOCKER_USER}" --password-stdin
+            docker push ${DOCKER_IMAGE}
+            docker logout
+          '''
         }
-        failure {
-            echo 'Pipeline failed. Check errors above.'
-        }
+      }
     }
+
+    stage('Update Deployment File') {
+      environment {
+        GIT_REPO_NAME = "jenkins_demo"
+        GIT_USER_NAME = "RadwaMohammedKamal"
+      }
+      steps {
+        withCredentials([
+          string(credentialsId: 'gethub', variable: 'GITHUB_TOKEN')
+        ]) {
+          sh '''
+            git config --global --add safe.directory "$WORKSPACE"
+            git config user.email "radwamohamed202116768@gmail.com"
+            git config user.name "radwa"
+
+            sed -i "s/replaceImageTag/${BUILD_NUMBER}/g" kubernetes/deployment.yml
+
+            git add kubernetes/deployment.yml
+            git commit -m "Update deployment image to ${BUILD_NUMBER}" || echo "No changes to commit"
+            git push https://${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME}.git HEAD:main
+          '''
+        }
+      }
+    }
+  }
 }
 
