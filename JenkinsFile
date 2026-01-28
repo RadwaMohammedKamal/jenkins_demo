@@ -25,6 +25,9 @@ pipeline {
         sh '''
           java -version
           mvn clean package -DskipTests
+
+          # Copy the generated JAR to workspace root for Docker build
+          cp target/*.jar .
         '''
       }
     }
@@ -43,13 +46,12 @@ pipeline {
         ]) {
           sh '''
             # Create .dockerignore
-            echo "target/" > .dockerignore
-            echo ".git" >> .dockerignore
+            echo ".git" > .dockerignore
 
-            # Use existing Dockerfile instead of echoing
+            # Build Docker image
             docker build -t ${DOCKER_IMAGE} .
 
-            # Login and push
+            # Login to Docker Hub and push
             echo "${DOCKER_PASS}" | docker login -u "${DOCKER_USER}" --password-stdin
             docker push ${DOCKER_IMAGE}
             docker logout
