@@ -1,10 +1,12 @@
+# Base image with Java 11
 FROM adoptopenjdk/openjdk11:alpine-jre
 
-ARG artifact=target/spring-boot-web-0.0.1-SNAPSHOT.jar
-
+# Set working directory
 WORKDIR /opt/app
 
-COPY ${artifact} app.jar
+# Copy any JAR file from target/ to the container as app.jar
+COPY target/*.jar app.jar
 
+# Run the application
 ENTRYPOINT ["java","-jar","app.jar"]
 
