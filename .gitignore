@@ -1,8 +1,4 @@
-.idea/
-*.iml
-.DS_Store
-.git
-.gitignore
-node_modules
-*.log
+# Ignore everything except the final JAR we need
+*
+!target/*.jar
 
