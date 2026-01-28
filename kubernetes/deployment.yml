@@ -16,6 +16,8 @@ spec:
     spec:
       containers:
       - name: spring-boot-app
-        image: radwa1/jenkins_demo:latest
+        image: radwa1/jenkins_demo:41
         ports:
         - containerPort: 8080
+      imagePullSecrets:
+        - name: dockerhub-secret
