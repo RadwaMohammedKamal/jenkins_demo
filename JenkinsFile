@@ -1,7 +1,7 @@
 pipeline {
   agent {
     docker {
-      image 'maven:3.9.2-eclipse-temurin-17'
+      image 'maven:3.9.2-eclipse-temurin-17' // Maven + JDK
       args '-u root -v /var/run/docker.sock:/var/run/docker.sock'
     }
   }
@@ -16,7 +16,8 @@ pipeline {
       steps {
         cleanWs()
         git branch: 'main',
-            url: 'https://github.com/RadwaMohammedKamal/jenkins_demo'
+            url: 'https://github.com/RadwaMohammedKamal/jenkins_demo',
+            credentialsId: 'gethub'
       }
     }
 
@@ -42,7 +43,10 @@ pipeline {
           )
         ]) {
           sh '''
+            # Build Docker image (only the JAR, small image)
             docker build -t ${DOCKER_IMAGE} .
+
+            # Login and push to Docker Hub
             echo "${DOCKER_PASS}" | docker login -u "${DOCKER_USER}" --password-stdin
             docker push ${DOCKER_IMAGE}
             docker logout

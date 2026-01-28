@@ -1,4 +1,3 @@
-# Ignore everything except the final JAR we need
 *
-!target/*.jar
+!test.txt
 

@@ -2,8 +2,8 @@ FROM adoptopenjdk/openjdk11:alpine-jre
 
 WORKDIR /opt/app
 
-# Copy only the JAR that Maven built
-COPY target/*.jar app.jar
+# Copy a small test file instead of big JAR
+COPY test.txt test.txt
 
-ENTRYPOINT ["java","-jar","app.jar"]
+CMD ["cat", "test.txt"]
 
