@@ -1,7 +1,7 @@
 pipeline {
   agent {
     docker {
-      image 'maven:3.9.2-eclipse-temurin-17'
+      image 'maven:3.9.2-eclipse-temurin-17' // Maven + JDK
       args '-u root -v /var/run/docker.sock:/var/run/docker.sock'
     }
   }
@@ -29,7 +29,7 @@ pipeline {
       }
     }
 
-    stage('Build and Push Docker Image') {
+    stage('Build Small Docker Image & Push') {
       environment {
         DOCKER_IMAGE = "radwa1/jenkins_demo:${BUILD_NUMBER}"
       }
@@ -42,6 +42,17 @@ pipeline {
           )
         ]) {
           sh '''
+            # Dockerignore صغير لتقليل الحجم
+            echo "target/" > .dockerignore
+            echo ".git" >> .dockerignore
+
+            # Dockerfile صغير
+            echo "FROM openjdk:11-jre-slim" > Dockerfile
+            echo "ARG artifact=target/spring-boot-web.jar" >> Dockerfile
+            echo "WORKDIR /opt/app" >> Dockerfile
+            echo "COPY \${artifact} app.jar" >> Dockerfile
+            echo 'ENTRYPOINT ["java","-jar","app.jar"]' >> Dockerfile
+
             docker build -t ${DOCKER_IMAGE} .
             echo "${DOCKER_PASS}" | docker login -u "${DOCKER_USER}" --password-stdin
             docker push ${DOCKER_IMAGE}
